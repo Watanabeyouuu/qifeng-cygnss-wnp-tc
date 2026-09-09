@@ -1,3 +1,5 @@
+"""Scores over finite masked pairs; negative reconstructed values are retained."""
+
 import numpy as np
 
 

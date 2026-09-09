@@ -30,7 +30,25 @@ with np.load("examples/data/soulik_20180818T180000.npz", allow_pickle=False) as 
 
 Wind speeds are in m/s. Arrays use `[latitude, longitude]` order, with increasing coordinates on a 0.25° grid. `lon` and `lat` give cell centres. Each file contains `reconstruction`, `cygnss`, `era5`, `obs_mask`, and `sea_mask`; the Soulik file also contains `ccmp`. Unsampled CYGNSS cells contain NaN.
 
-Plots share a scale from zero to the maximum reconstructed sea wind for each case. The colourbar extension indicates values above that scale. Printed observed-cell RMSE describes agreement with the input CYGNSS observations.
+The saved reconstructions retain the model outputs, including negative values; neither the arrays nor the evaluation metrics are clipped at zero. The sampler does not enforce nonnegative wind speed, as discussed in the manuscript. These negative values are nonphysical model outputs. Soulik contains 31 negative sea cells out of 19,046 (0.163%), with a minimum of -0.439342 m/s; the four Surigae snapshots contain no negative sea values.
+
+Plots share a scale from zero to the maximum reconstructed sea wind for each case. Colourbar extensions mark values outside that display range, including negative values when present. The display limits do not change the arrays used for scoring.
+
+## Reproducing the saved-case metrics
+
+The plotting command also writes `examples/output/case_metrics.csv`. Bias, RMSE, MAE and correlation use the unmodified arrays, excluding land and non-finite pairs. Rows labelled `input_cygnss` use observed sea cells and measure agreement with the reconstruction input; they are not the manuscript's independent, withheld-observation validation. ERA5 and CCMP rows use all finite sea-grid pairs in the saved domain or patch. Expected values for these same files and masks are in `examples/expected_metrics.csv`. The manuscript does not list these per-snapshot error scores separately.
+
+The sea-grid reconstruction maxima reproduce the corresponding Figure 2 and Figure 9 values (rounded to 0.1 m/s):
+
+| Saved field | Reconstruction maximum (m/s) |
+|---|---:|
+| Soulik 2018-08-18 18:00 | 51.9 |
+| Surigae 2021-04-18 09:00 | 48.8 |
+| Surigae 2021-04-19 09:00 | 39.8 |
+| Surigae 2021-04-20 09:00 | 34.7 |
+| Surigae 2021-04-21 00:00 | 38.5 |
+
+These files cover two storms at five timestamps. The manuscript's full-test RMSE, coverage-bin summaries and uncertainty scores use larger evaluation sets and cannot be recalculated from these five examples alone. The small negative-value count above likewise describes the released Soulik example, not the full withholding experiment.
 
 ## CYGNSS gridding
 

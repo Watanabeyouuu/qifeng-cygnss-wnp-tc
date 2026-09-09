@@ -1,18 +1,26 @@
 """Plot saved wind fields."""
 from pathlib import Path
 import argparse
+import csv
+import sys
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from metrics import deterministic_scores
+
 
 def plot_case(path, output):
     with np.load(path, allow_pickle=False) as z:
         fields = {k: z[k] for k in z.files}
     sea = fields['sea_mask'].astype(bool)
-    vmax = float(np.nanmax(fields['reconstruction'][sea]))
+    reconstructed_sea = fields['reconstruction'][sea]
+    vmin = float(np.nanmin(reconstructed_sea))
+    vmax = float(np.nanmax(reconstructed_sea))
+    negative_count = int(np.sum(reconstructed_sea < 0))
     names = [('cygnss', 'CYGNSS'), ('reconstruction', 'Reconstruction'),
              ('era5', 'ERA5'), ('ccmp', 'CCMP')]
     names = [(key, title) for key, title in names if key in fields]
@@ -34,7 +42,8 @@ def plot_case(path, output):
         else:
             ax.tick_params(labelleft=False)
     colorbar_ax = fig.add_axes([.32, .13, .40, .025])
-    cb = fig.colorbar(image, cax=colorbar_ax, orientation='horizontal', extend='max')
+    extension = 'both' if negative_count else 'max'
+    cb = fig.colorbar(image, cax=colorbar_ax, orientation='horizontal', extend=extension)
     cb.set_label('Wind speed (m s$^{-1}$)', fontsize=7)
     cb.ax.tick_params(labelsize=6)
     fig.suptitle(path.stem.replace('_', ' '), fontsize=9, y=.97)
@@ -42,13 +51,25 @@ def plot_case(path, output):
     for suffix in ['png', 'pdf']:
         fig.savefig(output / (path.stem + '.' + suffix), dpi=300)
     plt.close(fig)
-    valid = (sea & fields['obs_mask'].astype(bool)
-             & np.isfinite(fields['cygnss']) & np.isfinite(fields['reconstruction']))
-    # Agreement with input observations.
-    difference = fields['reconstruction'][valid] - fields['cygnss'][valid]
-    rmse = np.sqrt(np.mean(difference**2)) if difference.size else np.nan
-    print(f'{path.stem}: wind scale 0–{vmax:.3f} m/s; '
-          f'{valid.sum()} observed sea cells; observed-cell RMSE {rmse:.3f} m/s')
+    print(f'{path.stem}: reconstructed sea range {vmin:.6f}–{vmax:.6f} m/s; '
+          f'{negative_count} negative sea cells (retained)')
+    rows = []
+    for key in ['cygnss', 'era5', 'ccmp']:
+        if key not in fields:
+            continue
+        mask = sea.copy()
+        if key == 'cygnss':
+            mask &= fields['obs_mask'].astype(bool)
+        valid = mask & np.isfinite(fields[key]) & np.isfinite(fields['reconstruction'])
+        scores = deterministic_scores(fields['reconstruction'], fields[key], mask=valid)
+        target = 'input_cygnss' if key == 'cygnss' else key
+        row = dict(file=path.name, target=target, n=int(valid.sum()), **scores)
+        rows.append(row)
+        print(f"  {target}: n={row['n']}; Bias={scores['bias']:.6f}; "
+              f"RMSE={scores['rmse']:.6f}; MAE={scores['mae']:.6f} m/s; "
+              f"r={scores['corr']:.6f}")
+    return rows
+
 
 
 def main():
@@ -64,8 +85,13 @@ def main():
     paths = sorted(args.data_dir.glob('*.npz'))
     if not paths:
         raise FileNotFoundError(f'No NPZ cases in {args.data_dir}')
+    rows = []
     for path in paths:
-        plot_case(path, args.output_dir)
+        rows.extend(plot_case(path, args.output_dir))
+    with (args.output_dir / 'case_metrics.csv').open('w', newline='') as stream:
+        writer = csv.DictWriter(stream, fieldnames=['file', 'target', 'n', 'bias', 'rmse', 'mae', 'corr'])
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 if __name__ == '__main__':
