@@ -30,13 +30,21 @@ with np.load("examples/data/soulik_20180818T180000.npz", allow_pickle=False) as 
 
 Wind speeds are in m/s. Arrays use `[latitude, longitude]` order, with increasing coordinates on a 0.25° grid. `lon` and `lat` give cell centres. Each file contains `reconstruction`, `cygnss`, `era5`, `obs_mask`, and `sea_mask`; the Soulik file also contains `ccmp`. Unsampled CYGNSS cells contain NaN.
 
-The saved reconstructions retain the model outputs, including negative values; neither the arrays nor the evaluation metrics are clipped at zero. The sampler does not enforce nonnegative wind speed, as discussed in the manuscript. These negative values are nonphysical model outputs. Soulik contains 31 negative sea cells out of 19,046 (0.163%), with a minimum of -0.439342 m/s; the four Surigae snapshots contain no negative sea values.
+The saved reconstructions retain the model outputs, including negative values. By default, plots and metrics use these values without clipping, consistent with the manuscript's treatment of reconstructed winds. The sampler does not enforce nonnegative wind speed, as discussed in the manuscript. These negative values are nonphysical model outputs. Soulik contains 31 negative sea cells out of 19,046 (0.163%), with a minimum of -0.439342 m/s; the four Surigae snapshots contain no negative sea values.
 
 Plots share a scale from zero to the maximum reconstructed sea wind for each case. Colourbar extensions mark values outside that display range, including negative values when present. The display limits do not change the arrays used for scoring.
 
+To optionally set finite negative reconstruction values to zero before both plotting and scoring:
+
+```bash
+python examples/plot_cases.py --clip-negative
+```
+
+This option changes only the reconstruction array in memory; source NPZ files, observations and reference fields are unchanged. NaN and other non-finite values remain excluded from scoring. Clipped figures use an `_clipped` filename suffix and metrics are saved to `case_metrics_clipped.csv`, so they do not overwrite the default outputs. The CSV `processing` column identifies `raw` or `clip_negative`. Clipping is an optional post-processing variant, not the processing used for the manuscript's reported results.
+
 ## Reproducing the saved-case metrics
 
-The plotting command also writes `examples/output/case_metrics.csv`. Bias, RMSE, MAE and correlation use the unmodified arrays, excluding land and non-finite pairs. Rows labelled `input_cygnss` use observed sea cells and measure agreement with the reconstruction input; they are not the manuscript's independent, withheld-observation validation. ERA5 and CCMP rows use all finite sea-grid pairs in the saved domain or patch. Expected values for these same files and masks are in `examples/expected_metrics.csv`. The manuscript does not list these per-snapshot error scores separately.
+The plotting command also writes `examples/output/case_metrics.csv`. By default, Bias, RMSE, MAE and correlation use the unmodified arrays, excluding land and non-finite pairs. The same definitions and masks are used with `--clip-negative`, applied to the clipped reconstruction. Rows labelled `input_cygnss` use observed sea cells and measure agreement with the reconstruction input; they are not the manuscript's independent, withheld-observation validation. ERA5 and CCMP rows use all finite sea-grid pairs in the saved domain or patch. Expected values for the default, unclipped mode are in `examples/expected_metrics.csv`. The manuscript does not list these per-snapshot error scores separately.
 
 The sea-grid reconstruction maxima reproduce the corresponding Figure 2 and Figure 9 values (rounded to 0.1 m/s):
 

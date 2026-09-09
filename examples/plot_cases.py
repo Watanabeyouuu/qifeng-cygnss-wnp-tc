@@ -13,11 +13,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from metrics import deterministic_scores
 
 
-def plot_case(path, output):
+def plot_case(path, output, clip_negative=False):
     with np.load(path, allow_pickle=False) as z:
         fields = {k: z[k] for k in z.files}
+    processing = 'clip_negative' if clip_negative else 'raw'
+    if clip_negative:
+        wind = fields['reconstruction']
+        fields['reconstruction'] = np.where(np.isfinite(wind) & (wind < 0), 0.0, wind)
     sea = fields['sea_mask'].astype(bool)
-    reconstructed_sea = fields['reconstruction'][sea]
+    reconstructed_sea = fields['reconstruction'][sea & np.isfinite(fields['reconstruction'])]
     vmin = float(np.nanmin(reconstructed_sea))
     vmax = float(np.nanmax(reconstructed_sea))
     negative_count = int(np.sum(reconstructed_sea < 0))
@@ -46,13 +50,17 @@ def plot_case(path, output):
     cb = fig.colorbar(image, cax=colorbar_ax, orientation='horizontal', extend=extension)
     cb.set_label('Wind speed (m s$^{-1}$)', fontsize=7)
     cb.ax.tick_params(labelsize=6)
-    fig.suptitle(path.stem.replace('_', ' '), fontsize=9, y=.97)
+    title = path.stem.replace('_', ' ')
+    if clip_negative:
+        title += ' (negative values clipped to zero)'
+    fig.suptitle(title, fontsize=9, y=.97)
     output.mkdir(parents=True, exist_ok=True)
+    output_stem = path.stem + ('_clipped' if clip_negative else '')
     for suffix in ['png', 'pdf']:
-        fig.savefig(output / (path.stem + '.' + suffix), dpi=300)
+        fig.savefig(output / (output_stem + '.' + suffix), dpi=300)
     plt.close(fig)
-    print(f'{path.stem}: reconstructed sea range {vmin:.6f}–{vmax:.6f} m/s; '
-          f'{negative_count} negative sea cells (retained)')
+    print(f'{path.stem} [{processing}]: reconstructed sea range {vmin:.6f}–{vmax:.6f} m/s; '
+          f'{negative_count} negative sea cells in the evaluated field')
     rows = []
     for key in ['cygnss', 'era5', 'ccmp']:
         if key not in fields:
@@ -63,7 +71,7 @@ def plot_case(path, output):
         valid = mask & np.isfinite(fields[key]) & np.isfinite(fields['reconstruction'])
         scores = deterministic_scores(fields['reconstruction'], fields[key], mask=valid)
         target = 'input_cygnss' if key == 'cygnss' else key
-        row = dict(file=path.name, target=target, n=int(valid.sum()), **scores)
+        row = dict(file=path.name, processing=processing, target=target, n=int(valid.sum()), **scores)
         rows.append(row)
         print(f"  {target}: n={row['n']}; Bias={scores['bias']:.6f}; "
               f"RMSE={scores['rmse']:.6f}; MAE={scores['mae']:.6f} m/s; "
@@ -78,6 +86,8 @@ def main():
                         default=Path(__file__).parent / 'data')
     parser.add_argument('--output-dir', type=Path,
                         default=Path(__file__).parent / 'output')
+    parser.add_argument('--clip-negative', action='store_true',
+                        help='Set finite negative reconstruction values to zero for plots and scores; leave NPZ files unchanged.')
     args = parser.parse_args()
     plt.rcParams.update({'font.family': 'DejaVu Sans', 'pdf.fonttype': 42,
                          'axes.linewidth': .6, 'axes.spines.top': False,
@@ -87,9 +97,10 @@ def main():
         raise FileNotFoundError(f'No NPZ cases in {args.data_dir}')
     rows = []
     for path in paths:
-        rows.extend(plot_case(path, args.output_dir))
-    with (args.output_dir / 'case_metrics.csv').open('w', newline='') as stream:
-        writer = csv.DictWriter(stream, fieldnames=['file', 'target', 'n', 'bias', 'rmse', 'mae', 'corr'])
+        rows.extend(plot_case(path, args.output_dir, clip_negative=args.clip_negative))
+    metrics_name = 'case_metrics_clipped.csv' if args.clip_negative else 'case_metrics.csv'
+    with (args.output_dir / metrics_name).open('w', newline='') as stream:
+        writer = csv.DictWriter(stream, fieldnames=['file', 'processing', 'target', 'n', 'bias', 'rmse', 'mae', 'corr'])
         writer.writeheader()
         writer.writerows(rows)
 
