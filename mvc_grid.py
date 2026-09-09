@@ -1,11 +1,9 @@
-"""Grid sparse CYGNSS L2 wind speeds onto a regular lon/lat grid."""
-
 import numpy as np
 
 
 def mvc_grid(lon, lat, wind, lon_min, lat_min,
              dlon=0.25, dlat=0.25, nlon=160, nlat=160):
-    """Per-cell maximum. Returns the grid (NaN where empty) and the point count."""
+    """Cell maxima and sample counts; empty cells are NaN."""
     lon = np.asarray(lon, float)
     lat = np.asarray(lat, float)
     wind = np.asarray(wind, float)
@@ -27,7 +25,7 @@ def mvc_grid(lon, lat, wind, lon_min, lat_min,
 
 def mean_grid(lon, lat, wind, lon_min, lat_min,
               dlon=0.25, dlat=0.25, nlon=160, nlat=160):
-    """Per-cell mean, the comparison variant of mvc_grid."""
+    """Cell means and sample counts; empty cells are NaN."""
     lon = np.asarray(lon, float)
     lat = np.asarray(lat, float)
     wind = np.asarray(wind, float)

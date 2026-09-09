@@ -1,66 +1,54 @@
-# cygnss-wind-reconstruction
+# CYGNSS Western North Pacific wind reconstruction
 
-Code for the paper
+Selected reconstruction results and companion utilities for *Diffusion-Based Reconstruction of 10-m Sea Surface Winds in the Western North Pacific: From Routine Conditions to Tropical Cyclones*.
 
-**Diffusion-Based Reconstruction of 10-m Sea Surface Winds in the Western North Pacific: From Routine Conditions to Tropical Cyclones**
+## Read and plot
 
-We reconstruct gridded 10-m sea surface winds over the western North Pacific by
-assimilating sparse CYGNSS observations into a score-based diffusion prior, and
-evaluate the fields from routine conditions through tropical cyclones. This repo
-holds the gridding operator, the evaluation metrics, and the plotting used in
-the paper. The prior and the sampler build on
-[EDM](https://github.com/NVlabs/edm) and
-[SDA](https://github.com/francois-rozet/sda).
+```bash
+python -m pip install -r requirements.txt
+python examples/plot_cases.py
+```
 
-## Scripts
-
-- `mvc_grid.py` — grid sparse CYGNSS L2 winds onto a 0.25° grid, per-cell maximum
-  (`mvc_grid`) or mean (`mean_grid`).
-- `metrics.py` — deterministic (bias, RMSE, MAE, correlation) and probabilistic
-  (spread, PICP, z-score, CRPS, NLL) scores over a sea mask.
-- `plot_reconstruction.py` — plot a reconstruction with an optional reference and
-  their difference.
-
-## Usage
+The example reads saved wind fields and writes PNG and PDF comparisons to `examples/output/`. It runs on CPU with NumPy and Matplotlib.
 
 ```python
 import numpy as np
-from metrics import deterministic_scores, picp, crps, zscore
+from metrics import deterministic_scores
 
-recon = np.load("recon.npy")      # (H, W)
-ref   = np.load("era5.npy")       # (H, W)
-sea   = np.load("sea_mask.npy")   # (H, W) bool
-
-print(deterministic_scores(recon, ref, mask=sea))
-
-ens = np.load("ensemble.npy")     # (N, H, W)
-print(picp(ens, ref, level=0.9, mask=sea))
-print(crps(ens, ref, mask=sea))
-print(zscore(ens, ref, mask=sea))
+with np.load("examples/data/soulik_20180818T180000.npz", allow_pickle=False) as case:
+    wind = case["reconstruction"]
+    print(wind.shape)
+    print(deterministic_scores(wind, case["era5"], mask=case["sea_mask"]))
 ```
 
-```bash
-python plot_reconstruction.py recon.npy --ref era5.npy --out case.png
+## Saved cases
+
+| Storm | UTC | Grid | Paper figure |
+|---|---|---|---|
+| Soulik | 2018-08-18 18:00 | 160 × 160 | Figure 2 |
+| Surigae | 2021-04-18 09:00, 04-19 09:00, 04-20 09:00, 04-21 00:00 | 32 × 32 | Selected frames from Figure 9 |
+
+Wind speeds are in m/s. Arrays use `[latitude, longitude]` order, with increasing coordinates on a 0.25° grid. `lon` and `lat` give cell centres. Each file contains `reconstruction`, `cygnss`, `era5`, `obs_mask`, and `sea_mask`; the Soulik file also contains `ccmp`. Unsampled CYGNSS cells contain NaN.
+
+Plots share a scale from zero to the maximum reconstructed sea wind for each case. The colourbar extension indicates values above that scale. Printed observed-cell RMSE describes agreement with the input CYGNSS observations.
+
+## CYGNSS gridding
+
+`mvc_grid.py` provides maximum-value compositing and a mean-compositing helper. Inputs are observation longitude, latitude, and wind speed arrays after quality screening and time selection. `lon_min` and `lat_min` specify the lower grid edges; empty cells return NaN, and `count` gives the number of observations per cell.
+
+```python
+from mvc_grid import mvc_grid
+
+# Illustrative observations: two samples fall in the same grid cell.
+grid, count = mvc_grid(
+    lon=[120.10, 120.15], lat=[15.10, 15.15], wind=[12.0, 18.0],
+    lon_min=120.0, lat_min=15.0, nlon=4, nlat=4,
+)
+print(grid[0, 0], count[0, 0])  # 18.0, 2
 ```
 
-## Data
+`metrics.py` provides Bias (reconstruction minus reference), RMSE, MAE, and correlation over valid masked cells.
 
-CCMP for training, CYGNSS as the constraint, ERA5 / IBTrACS / SAR for evaluation.
+## Data and license
 
-- CCMP v3.1: https://data.remss.com/ccmp/v03.1/
-- CYGNSS L2 SWSP v1.2: https://podaac.jpl.nasa.gov/dataset/CYGNSS_NOAA_L2_SWSP_25KM_V1.2
-- ERA5: https://cds.climate.copernicus.eu/
-- IBTrACS: https://www.ncei.noaa.gov/products/international-best-track-archive
-
-## Requirements
-
-`numpy`, `matplotlib`, and `xarray` (only for NetCDF input).
-
-## Citation
-
-Han et al. (2026). Score-Based Data Assimilation of 10-m Sea Surface Winds in the
-Western North Pacific: From Routine Conditions to Tropical Cyclones.
-
-## License
-
-MIT
+Code uses the MIT license. Source data retain their provider terms: [CYGNSS L2 SWSP v1.2](https://doi.org/10.5067/CYGNN-22512), [ERA5](https://doi.org/10.24381/cds.adbb2d47), and [CCMP v3.1](https://data.remss.com/ccmp/v03.1/). Reconstruction arrays are study outputs. Cite the paper and the corresponding source products when using these examples.
