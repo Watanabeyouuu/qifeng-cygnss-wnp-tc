@@ -1,6 +1,6 @@
 # CYGNSS Western North Pacific wind reconstruction
 
-Selected reconstruction results and companion utilities for *Diffusion-Based Reconstruction of Western North Pacific Sea Surface Winds from CYGNSS Observations*.
+Selected reconstruction results and companion utilities for *Diffusion-Based Reconstruction of Western North Pacific Surface Winds from CYGNSS for Tropical Cyclone Analysis*.
 
 ## Read and plot
 
