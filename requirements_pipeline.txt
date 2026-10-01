@@ -1,0 +1,14 @@
+numpy
+pandas
+xarray
+netCDF4
+scipy
+matplotlib
+click
+tqdm
+torch
+Pillow
+psutil
+requests
+cartopy
+shapely

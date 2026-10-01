@@ -1,0 +1,29 @@
+{
+  "extent": [
+    105,
+    145,
+    -2,
+    38
+  ],
+  "grid_shape": [
+    160,
+    160
+  ],
+  "normalization_divisor": 100,
+  "observation_window_hours_each_side": 3,
+  "sigma_y": 0.05,
+  "gamma": 0.001,
+  "num_steps": 64,
+  "C": 2,
+  "tau": 0.1,
+  "sigma_min": 0.002,
+  "sigma_max": 80,
+  "rho": 7,
+  "precision": "float64",
+  "bulk_seed": 0,
+  "uncertainty_ensemble_size": 15,
+  "evaluation_start": "2018-08-01",
+  "evaluation_end": "2022-09-30",
+  "checkpoint_identifier_only": "network-snapshot-004505.pkl",
+  "weights_included": false
+}

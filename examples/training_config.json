@@ -1,0 +1,25 @@
+{
+  "resolution": 160,
+  "batch_size": 4,
+  "learning_rate": 0.001,
+  "steps": 100,
+  "seed": 0,
+  "network": {
+    "model_type": "SongUNet",
+    "model_channels": 128,
+    "channel_mult": [
+      1,
+      1,
+      2,
+      2,
+      2
+    ],
+    "attn_resolutions": [
+      40,
+      20,
+      10
+    ],
+    "dropout": 0.13,
+    "use_fp16": false
+  }
+}
