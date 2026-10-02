@@ -1,6 +1,6 @@
-# CYGNSS Western North Pacific wind reconstruction
+# Diffusion-Based Reconstruction of Western North Pacific Surface Winds from CYGNSS for Tropical Cyclone Analysis
 
-Examples and processed evaluation data for *Diffusion-Based Reconstruction of Western North Pacific Surface Winds from CYGNSS for Tropical Cyclone Analysis*.
+Code examples and processed evaluation data accompanying the paper.
 
 Version 1.0.0 is archived at [Zenodo](https://doi.org/10.5281/zenodo.23073928).
 
@@ -79,4 +79,4 @@ Study code uses the MIT license in `LICENSE`. External implementations retain th
 
 Cite the paper and the corresponding source products when using the data.
 
-Archive citation: Han, X., Li, X., Yang, J., Niu, Z., Han, G., Fu, N., Wang, J., Tao, W., Aouf, L., & Chen, D. (2026). *Code and processed data for Diffusion-Based Reconstruction of Western North Pacific Surface Winds from CYGNSS for Tropical Cyclone Analysis* (Version 1.0.0). Zenodo. https://doi.org/10.5281/zenodo.23073928
+Archive citation: Han, X., Li, X., Yang, J., Niu, Z., Han, G., Fu, N., Wang, J., Tao, W., Aouf, L., & Chen, D. (2026). *Diffusion-Based Reconstruction of Western North Pacific Surface Winds from CYGNSS for Tropical Cyclone Analysis* (Version 1.0.0). Zenodo. https://doi.org/10.5281/zenodo.23073928
